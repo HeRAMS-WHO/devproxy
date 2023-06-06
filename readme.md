@@ -40,6 +40,58 @@ All requests for the `.test` tld will be forwarded to our DNS container, which w
 Because bridge networks are accessible from the host we do not need to expose any ports on the Traefik container. Technically we don't even need to expose the dns server on localhost, were it not for the fact that we don't know its container IP (and the fact that this container IP is not static).
 
 Note that if your system is not using dnsmasq you might have to activate that first. For Ubuntu check out this tutorial: https://anto.online/guides/how-to-enable-and-disable-systemd-resolved-on-ubuntu/
+Note that the this can be also done as:
+
+```
+We need to enable dnsmasq
+cd /etc/NetworkManager/
+sudo nano NetworkManager.conf 
+add "dns=dnsmasq" to [main]
+
+restart NetworkManager
+sudo systemctl restart NetworkManager
+check systemd
+systemctl status systemd-resolved
+
+verify if the resolv has now dns enabled
+cat /etc/resolv.conf
+in case it doesn't
+systemctl disable systemd-resolved
+systemctl stop systemd-resolved
+systemctl status systemd-resolved
+
+verify again
+cat /etc/resolv.conf
+
+Restart the NetworkManager
+sudo systemctl restart NetworkManager
+cat /etc/resolv.conf
+
+if it still didnt work
+sudo rm /etc/resolv.conf 
+create a new simlink
+sudo ln -s /run/NetworkManager/resolv.conf /etc/resolv.conf
+
+check if the /etc/resolv has the correct simlink
+ls -la
+
+check the networkManager status
+systemctl status NetworkManager
+
+if the /run/NetworkManager/resolv.conf still doesnt have the dns enabled
+sudo nano /run/NetworkManager/resolv.conf 
+sudo rm /etc/resolv.conf 
+sudo ln -s /run/NetworkManager/resolv.conf /etc/resolv.conf
+
+you can try the above command
+echo server=/.test/127.0.0.1#53535 | sudo tee /etc/NetworkManager/dnsmasq.d/test.conf
+
+after the dns is enabled you can check with
+nslookup something.test
+nslookup herams.test
+you restart the NetworkManager one more time to make sure its still working
+sudo systemctl restart NetworkManager
+```
 
 ## Configuring routing on windows
 On Linux most things work out of the box, on Windows additional magic will be needed. You'll probably want to create a `docker-compose.override.yml` that exposes the Traefik container ports on localhost; Docker Desktop should then make that available to you from windows as well.
